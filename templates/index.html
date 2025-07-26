@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Language Recognition</title>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --light-bg: #fafbff;
+            --card-bg: #ffffff;
+            --dark-text: #1f2937;
+            --light-text: #6b7280;
+            --border-color: #e5e7eb;
+            --border-radius: 20px;
+            --box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gradient-bg);
+            margin: 0;
+            min-height: 100vh;
+            color: var(--dark-text);
+            line-height: 1.6;
+            padding: 20px 0;
+        }
+        
+        #container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 48px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--secondary-color));
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        h2 {
+            color: var(--dark-text);
+            font-size: 2.8rem;
+            margin-bottom: 32px;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+            background: var(--gradient-bg);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--gradient-bg);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .video-row {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        
+        .video-container {
+            position: relative;
+            display: inline-block;
+            flex: 1;
+            max-width: 420px;
+        }
+        
+        .video-container::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            background: var(--gradient-bg);
+            border-radius: calc(var(--border-radius) + 8px);
+            z-index: -1;
+            opacity: 0.3;
+        }
+        
+        .output-container {
+            position: relative;
+            display: inline-block;
+            flex: 1;
+            max-width: 420px;
+        }
+        
+        .output-container::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            background: var(--gradient-bg);
+            border-radius: calc(var(--border-radius) + 8px);
+            z-index: -1;
+            opacity: 0.3;
+        }
+        
+        #video, #output-img {
+            width: 100%;
+            height: 315px;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: var(--border-radius);
+            background: var(--light-bg);
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            object-fit: cover;
+            position: relative;
+        }
+        
+        #video:hover, #output-img:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: var(--box-shadow);
+            border-color: var(--accent-color);
+        }
+        
+        #output-img {
+            display: block;
+        }
+        
+        .video-label, .output-label {
+            text-align: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .predictions {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: var(--border-radius);
+            padding: 32px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+            text-align: left;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+        
+        .predictions::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-bg);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+        
+        .predictions span {
+            display: flex;
+            align-items: center;
+            margin: 18px 0;
+            font-size: 1.1rem;
+            color: var(--dark-text);
+            font-weight: 500;
+        }
+        
+        .predictions span:first-child {
+            margin-top: 0;
+        }
+        
+        .predictions-label {
+            min-width: 140px;
+            color: var(--light-text);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .predictions b {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin-left: 12px;
+            letter-spacing: 0.5px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(249, 147, 251, 0.1));
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        #current-symbol {
+            color: var(--success-color);
+            font-size: 1.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px 0;
+            }
+            
+            #container {
+                margin: 10px;
+                padding: 32px 24px;
+                border-radius: 16px;
+            }
+            
+            h2 {
+                font-size: 2.2rem;
+            }
+            
+            .video-row {
+                flex-direction: column;
+                gap: 16px;
+                align-items: center;
+            }
+            
+            .video-container, .output-container {
+                max-width: 100%;
+            }
+            
+            #video, #output-img {
+                width: 100%;
+                height: auto;
+                max-height: 50vh;
+            }
+            
+            .predictions {
+                padding: 24px 20px;
+            }
+            
+            .predictions span {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .predictions-label {
+                min-width: auto;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .controls button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        @media (max-width: 500px) {
+            #container {
+                margin: 8px;
+                padding: 24px 16px;
+                border-radius: 12px;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+            
+            .predictions {
+                padding: 20px 16px;
+            }
+            
+            .predictions b {
+                font-size: 1.1rem;
+                padding: 4px 8px;
+            }
+            
+            .predictions b.suggestion {
+                font-size: 1rem;
+                padding: 6px 12px;
+            }
+        }
+        
+        .controls {
+            margin-top: 32px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            background: var(--gradient-bg);
+            border: none;
+            padding: 14px 24px;
+            font-size: 1.1rem;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            box-shadow: var(--card-shadow);
+            min-width: 120px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .controls button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .controls button:hover::before {
+            left: 100%;
+        }
+        
+        .controls button:active {
+            transform: translateY(0);
+        }
+
+        .predictions b.suggestion {
+            cursor: pointer;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(249, 147, 251, 0.15));
+            padding: 8px 16px;
+            border-radius: 10px;
+            margin: 0 8px 8px 0;
+            transition: var(--transition);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            display: inline-block;
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .predictions b.suggestion::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .predictions b.suggestion:hover {
+            background: var(--gradient-bg);
+            color: white;
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+        
+        .predictions b.suggestion:hover::before {
+            left: 100%;
+        }
+        
+        .suggestions-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="container">
+    <h2>🤟 Sign Language Recognition</h2>
+    <div class="video-row">
+        <div class="video-container">
+            <div class="video-label">📹 Live Camera</div>
+            <video id="video" autoplay></video>
+        </div>
+        <div class="output-container">
+            <div class="output-label">🤖 Hand Detection</div>
+            <img id="output-img" src="" alt="Hand Tracking Output"/>
+        </div>
+    </div>
+    <div class="predictions">
+        <span>
+            <span class="predictions-label">🎯 Current Symbol:</span>
+            <b id="current-symbol"><span class="status-indicator"></span>Detecting...</b>
+        </span>
+        <span>
+            <span class="predictions-label">📝 Word:</span>
+            <b id="current-word">Ready to start</b>
+        </span>
+        <span>
+            <span class="predictions-label">💡 Suggestions:</span>
+            <div class="suggestions-container">
+                <b class="suggestion" id="suggest1"></b>
+                <b class="suggestion" id="suggest2"></b>
+                <b class="suggestion" id="suggest3"></b>
+                <b class="suggestion" id="suggest4"></b>
+            </div>
+        </span>
+    </div>
+    <div class="controls">
+        <button onclick="speakWord()">🔊 Speak Word</button>
+        <button onclick="clearWord()">🗑️ Clear Word</button>
+    </div>
+</div>
+<script src="/static/script.js"></script>
+</body>
+</html>
